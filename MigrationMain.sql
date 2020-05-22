@@ -1,0 +1,26 @@
+SELECT src.DOCUMENT_ID [Doc_Num], src.NAME [Doc_Name], dt.NAME [Doc_Type], src.state [Doc_Status], src.CREATE_DATE [Doc_Date], src.MODIFIED_DATE [Release_Date], src.obsDATE [ObseleteDate], 
+(UPPER((SUBSTRING(em.FIRST_NAME , 1, 1) +  em.LAST_NAME))) [Doc_Manager] , 'Yes' [ForceRevControl], SRC.REVISION_LEVEL [Revision], src.HISTORY [RevisionNotes]
+from (SELECT do.DOCUMENT_ID , do.NAME, do.REVISION_LEVEL, do.DOCUMENT_TYPE_ID, do.CREATE_DATE, do.MODIFIED_DATE, do.EMPLOYEE_ID, 
+		CASE do.REVISION_LEVEL 
+			when 'OBSOLETE' then 'OBSOLETE'
+			when '0' then 'PENDING'
+			else 'ACTIVE'
+		END AS state,
+		CASE do.REVISION_LEVEL 
+			when 'OBSOLETE' then do.REVISION_DATE 
+			else NULL 
+		END AS obsDATE,
+		'temp' HISTORY
+	from IQSWeb.dbo.DOCUMENT do
+	union all
+	SELECT  MAX(da.DOCUMENT_ID) DOCUMENT_ID , MAX(da.NAME) NAME, da.REVISION_LEVEL REVISION_LEVEL , MAX(da.DOCUMENT_TYPE_ID) DOCUMENT_TYPE_ID , 
+		MAX(da.CREATE_DATE) CREATE_BY , MAX(da.MODIFIED_DATE) MODIFIED_DATE , MAX(da.EMPLOYEE_ID) EMPLOYEE_ID , 'OBSOLETE' state, MAX(da.ARCHIVE_DATE) obsDATE,
+		STUFF((SELECT ',' + hst.CHANGE_HISTORY 
+			FROM IQSWeb.dbo.DOCM_CHNG_HIST hst
+			WHERE (hst.REVISION_LEVEL = da.REVISION_LEVEL and MAX(da.DOCUMENT_ID ) = hst.DOCUMENT_ID )
+			FOR XML PATH ('')), 1, 1, '') HISTORY
+	FROM IQSWeb.dbo.DOCUMENT_ARCH da
+	GROUP BY da.REVISION_LEVEL, da.DOCUMENT_ID ) src
+left outer join IQSWeb.dbo.DOCUMENT_TYPE dt on src.DOCUMENT_TYPE_ID = dt.DOCUMENT_TYPE_ID 
+left outer join IQSWeb.dbo.EMPLOYEE em on src.EMPLOYEE_ID = em.EMPLOYEE_ID 
+order by  dt.NAME, src.DOCUMENT_ID, src.REVISION_LEVEL ASC 
