@@ -6,7 +6,11 @@ REPLACE(STUFF((SELECT ',' + hst.CHANGE_HISTORY
 		FOR XML PATH ('')), 1, 1, ''),'&#x0D;', CHAR(13))  [RevisionNotes], NULL [Reference], NULL [Customer], NULL [Vendor], NULL [Part], 
 		(SELECT rc.DESCRIPTION 
 		 FROM IQSWeb.dbo.REFERENCE_CODE rc
-		 WHERE rc.CODE_SYSID = max(src.deptCode)) [Department]
+		 WHERE rc.CODE_SYSID = max(src.deptCode)) [Department], NULL [Division], NULL [Doc_Category], NULL [Master_Location],
+		(SELECT le.FILE_LOCATION 
+		 FROM IQSWeb.dbo.DOCUMENT_LINK_EMBED dle 
+		 LEFT OUTER JOIN IQSWeb.dbo.LINK_EMBED le on dle.LINK_EMBED_SYSID = le.LINK_EMBED_SYSID 
+		 WHERE dle.DEF_LINK_EMBED = 'Y' and max(src.DOCUMENT_ID) = dle.DOCUMENT_ID) [File_Path]
 FROM (SELECT do.DOCUMENT_ID , do.NAME, do.REVISION_LEVEL, do.DOCUMENT_TYPE_ID, do.CREATE_DATE, do.MODIFIED_DATE, do.EMPLOYEE_ID, 
 		CASE do.REVISION_LEVEL 
 			when 'OBSOLETE' then 'OBSOLETE'
@@ -24,6 +28,6 @@ FROM (SELECT do.DOCUMENT_ID , do.NAME, do.REVISION_LEVEL, do.DOCUMENT_TYPE_ID, d
 	FROM IQSWeb.dbo.DOCUMENT_ARCH da) src
 left outer join IQSWeb.dbo.DOCUMENT_TYPE dt on src.DOCUMENT_TYPE_ID = dt.DOCUMENT_TYPE_ID 
 left outer join IQSWeb.dbo.EMPLOYEE em on src.EMPLOYEE_ID = em.EMPLOYEE_ID 
---where src.DOCUMENT_ID = 'fo-82-006'
+--where src.DOCUMENT_ID = 'pr-63-001'
 group by src.REVISION_LEVEL, src.DOCUMENT_ID
 order by  src.DOCUMENT_ID, src.REVISION_LEVEL ASC 
