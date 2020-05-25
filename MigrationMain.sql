@@ -1,9 +1,9 @@
 SELECT src.DOCUMENT_ID [Doc_Num], max(src.NAME) [Doc_Name], max(dt.NAME) [Doc_Type], min(src.state) [Doc_Status], max(src.CREATE_DATE) [Doc_Date], max(src.MODIFIED_DATE) [Release_Date], max(src.obsDATE) [ObseleteDate], 
 (UPPER((SUBSTRING(max(em.FIRST_NAME) , 1, 1) +  max(em.LAST_NAME)))) [Doc_Manager] , 'Yes' [ForceRevControl], SRC.REVISION_LEVEL [Revision],
-STUFF((SELECT ',' + hst.CHANGE_HISTORY
+REPLACE(STUFF((SELECT ',' + hst.CHANGE_HISTORY
 		FROM IQSWeb.dbo.DOCM_CHNG_HIST hst
 		WHERE (hst.REVISION_LEVEL = src.REVISION_LEVEL AND hst.DOCUMENT_ID = src.DOCUMENT_ID)
-		FOR XML PATH ('')), 1, 1, '') [RevisionNotes]
+		FOR XML PATH ('')), 1, 1, ''),'&#x0D;', CHAR(13))  [RevisionNotes]
 from (SELECT do.DOCUMENT_ID , do.NAME, do.REVISION_LEVEL, do.DOCUMENT_TYPE_ID, do.CREATE_DATE, do.MODIFIED_DATE, do.EMPLOYEE_ID, 
 		CASE do.REVISION_LEVEL 
 			when 'OBSOLETE' then 'OBSOLETE'
@@ -21,6 +21,6 @@ from (SELECT do.DOCUMENT_ID , do.NAME, do.REVISION_LEVEL, do.DOCUMENT_TYPE_ID, d
 	FROM IQSWeb.dbo.DOCUMENT_ARCH da) src
 left outer join IQSWeb.dbo.DOCUMENT_TYPE dt on src.DOCUMENT_TYPE_ID = dt.DOCUMENT_TYPE_ID 
 left outer join IQSWeb.dbo.EMPLOYEE em on src.EMPLOYEE_ID = em.EMPLOYEE_ID 
--- WHERE src.DOCUMENT_ID = 'wi-75-012'
+-- where src.DOCUMENT_ID = 'pr-42-002'
 group by src.REVISION_LEVEL, src.DOCUMENT_ID
 order by  src.DOCUMENT_ID, src.REVISION_LEVEL ASC 
